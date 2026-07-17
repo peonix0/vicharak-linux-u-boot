@@ -197,6 +197,16 @@ config BOOTDELAY
 
 	  See doc/README.autoboot for details.
 
+config BOOTKEY
+	bool "Enter BootROM/download mode via Ctrl-B"
+	default n
+	depends on AUTOBOOT
+	help
+	  Enable the special boot key handling that allows entering the
+	  board BootROM/download (RKFlash) mode when Ctrl-B is pressed
+	  during autoboot or at the boot prompt. This is used by
+	  Rockchip-based boards to trigger firmware download mode.
+
 config USE_BOOTARGS
 	bool "Enable boot arguments"
 	help

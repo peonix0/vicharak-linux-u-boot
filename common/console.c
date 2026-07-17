@@ -709,11 +709,41 @@ int ctrlq(void)
 	return 0;
 }
 
-/* test if ctrl-q or ctrl-c was pressed */
-int ctrlc_or_q(void)
+/* test if ctrl-b was pressed */
+static int ctrlb_disabled = 0;	/* see disable_ctrl() */
+static int ctrlb_was_pressed = 0;
+
+int ctrlb(void)
 {
 #ifndef CONFIG_SANDBOX
-	if ((!ctrlq_disabled || !ctrlc_disabled) && gd->have_console) {
+	if (!ctrlb_disabled && gd->have_console) {
+		if (tstc()) {
+			switch (getc()) {
+			case 0x02:		/* ^B - Control B */
+				/*
+				 * Only register Ctrl+B if the console magic
+				 * does not match. This prevents ^B from
+				 * breaking execution when console is locked.
+				 */
+				if (!console_magic_match) {
+					ctrlb_was_pressed = 1;
+					return 1;
+				}
+			default:
+				break;
+			}
+		}
+	}
+#endif
+
+	return 0;
+}
+
+/* test if ctrl-q or ctrl-c was pressed */
+int keypress_handler(void)
+{
+#ifndef CONFIG_SANDBOX
+	if ((!ctrlq_disabled || !ctrlc_disabled || !ctrlb_disabled) && gd->have_console) {
 		if (tstc()) {
 			switch (getc()) {
 			case 0x11:		/* ^Q - Control Q */
@@ -724,6 +754,11 @@ int ctrlc_or_q(void)
 			case 0x03:		/* ^C - Control C */
 				if (!console_magic_match) {
 					ctrlc_was_pressed = ctrlc_disabled ? ctrlc_was_pressed : 1;
+					return 1;
+				}
+			case 0x02:		/* ^B - Control B */
+				if (!console_magic_match) {
+					ctrlb_was_pressed = ctrlb_disabled ? ctrlb_was_pressed : 1;
 					return 1;
 				}
 			default:
@@ -803,6 +838,27 @@ int had_ctrlq (void)
 void clear_ctrlq(void)
 {
 	ctrlq_was_pressed = 0;
+}
+
+/* pass 1 to disable ctrlb() checking, 0 to enable.
+ * returns previous state
+ */
+int disable_ctrlb(int disable)
+{
+	int prev = ctrlb_disabled;	/* save previous state */
+
+	ctrlb_disabled = disable;
+	return prev;
+}
+
+int had_ctrlb (void)
+{
+	return ctrlb_was_pressed;
+}
+
+void clear_ctrlb(void)
+{
+	ctrlb_was_pressed = 0;
 }
 
 /** U-Boot INIT FUNCTIONS *************************************************/

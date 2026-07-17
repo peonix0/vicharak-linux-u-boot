@@ -25,14 +25,19 @@ int had_ctrlq(void);	/* have we had a Control-Q since last clear? */
 void clear_ctrlq(void);	/* clear the Control-Q condition */
 int disable_ctrlq(int);	/* 1 to disable, 0 to enable Control-Q detect */
 
-/**
- * ctrlc_or_q() - checks for both ctrl-q or ctrl-c
- *
- * Calling explicitly both ctrlq() & ctrlc() consumes the input for other.
- */
-int ctrlc_or_q(void);
+int ctrlb(void);
+int had_ctrlb(void);	/* have we had a Control-B since last clear? */
+void clear_ctrlb(void);	/* clear the Control-B condition */
+int disable_ctrlb(int);	/* 1 to disable, 0 to enable Control-B detect */
 
 /**
+  * keypress_handler() - checks for keypress events
+ *
+ * Calling explicitly ctrlq() & ctrlc() & ctrlb() consumes the input for other.
+ */
+int keypress_handler(void);
+
+/**1
  * console_record_init() - set up the console recording buffers
  *
  * This should be called as soon as malloc() is available so that the maximum
