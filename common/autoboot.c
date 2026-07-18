@@ -19,6 +19,8 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define MAX_DELAY_STOP_STR 32
 
+#define BOOT_BROM_DOWNLOAD    0xEF08A53C
+
 #ifndef DEBUG_BOOTKEYS
 #define DEBUG_BOOTKEYS 0
 #endif
@@ -27,6 +29,14 @@ DECLARE_GLOBAL_DATA_PTR;
 
 /* Stored value of bootdelay, used by autoboot_command() */
 static int stored_bootdelay;
+
+static void rkflash_enter_loader_mode(void)
+{
+#if defined(CONFIG_ROCKCHIP_BOOT_MODE_REG)
+	writel(BOOT_BROM_DOWNLOAD, CONFIG_ROCKCHIP_BOOT_MODE_REG);
+#endif
+	do_reset(NULL, 0, 0, NULL);
+}
 
 #if defined(CONFIG_AUTOBOOT_KEYED)
 #if defined(CONFIG_AUTOBOOT_STOP_STR_SHA256)
@@ -220,7 +230,7 @@ static int __abortboot(int bootdelay)
 #endif
 
 #ifdef CONFIG_ARCH_ROCKCHIP
-	if (!IS_ENABLED(CONFIG_CONSOLE_DISABLE_CLI) && ctrlc_or_q()) {
+	if (!IS_ENABLED(CONFIG_CONSOLE_DISABLE_CLI) && keypress_handler()) {
 		/* we press ctrl+c or ctrl+q? */
 #else
 	/*
@@ -238,8 +248,8 @@ static int __abortboot(int bootdelay)
 		/* delay 1000 ms */
 		ts = get_timer(0);
 		do {
-			if (ctrlc_or_q()) {
-				/* we got a ctrl+c or ctrl+q key press	*/
+			if (keypress_handler()) {
+				/* we got a ctrl+c or ctrl+q or ctrl+b key press	*/
 				abort  = 1;	/* don't auto boot	*/
 				bootdelay = 0;	/* no more delay	*/
 # ifdef CONFIG_MENUKEY
@@ -275,7 +285,12 @@ static int abortboot(int bootdelay)
 #ifdef CONFIG_DRM_ROCKCHIP_VIDEO_FRAMEBUFFER
 		run_command("rockchip_show_fbbase", 0);
 #endif
-
+#ifdef CONFIG_BOOTKEY
+		if (had_ctrlb()){
+			printf("autoboot: Entering BootROM/download mode...\n");
+			rkflash_enter_loader_mode();
+		}
+#endif
 #ifdef CONFIG_CMD_BOOTMENU
 		if (had_ctrlq())
 			run_command("bootmenu 10", 0);
@@ -378,6 +393,11 @@ void autoboot_command(const char *s)
 
 #ifdef CONFIG_DRM_ROCKCHIP_VIDEO_FRAMEBUFFER
 		run_command("rockchip_show_fbbase", 0);
+#endif
+
+#ifdef CONFIG_BOOTKEY
+		if (had_ctrlb())
+			rkflash_enter_loader_mode();
 #endif
 
 #ifdef CONFIG_CMD_BOOTMENU
