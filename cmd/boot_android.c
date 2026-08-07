@@ -13,6 +13,9 @@
 #include <common.h>
 #include <bootm.h>
 #include <command.h>
+#ifdef CONFIG_ARCH_ROCKCHIP
+#include <boot_rkimg.h>
+#endif
 #include <mp_boot.h>
 #include <android_bootloader_message.h>
 #include <android_avb/rk_avb_ops_user.h>
@@ -58,6 +61,14 @@ static int do_boot_android(cmd_tbl_t *cmdtp, int flag, int argc,
 		printf("Could not get %s %s\n", argv[1], argv[2]);
 		return CMD_RET_FAILURE;
 	}
+
+#ifdef CONFIG_ARCH_ROCKCHIP
+	/* Ensure Android, AVB and image loading all use the requested device. */
+	env_set("devtype", argv[1]);
+	env_set_ulong("devnum", dev_desc->devnum);
+	rockchip_set_bootdev(dev_desc);
+#endif
+
 
 	ret = android_bootloader_boot_flow(dev_desc, load_address);
 	if (ret < 0) {
